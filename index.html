@@ -1,0 +1,464 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<title></title>
+<link rel="stylesheet" href="./css/bootstrap.min.css" />
+<link rel="stylesheet" href="./css/tab.css" />
+<link rel="stylesheet" href="./css/tabbar.css" />
+<link rel="stylesheet" href="css/menu.css" />
+<link rel="stylesheet" href="css/menuitem.css" />
+<link rel="stylesheet" href="css/dialog.css" />
+<!--
+<script type="text/javascript" src="../closure-library-git/closure/goog/base.js"></script>
+<script type="text/javascript" src="deps.js"></script>
+-->
+<script type="text/javascript" src="data.js"></script>
+<script type="text/javascript" src="compiled.js"></script>
+<style type="text/css">
+
+fieldset {
+  padding: 10px;
+  border: 1px solid #369;
+}
+
+.goog-tab-content {
+	height: 500px;
+	margin: 0;
+	border: 1px solid #6b90da;
+	border-top: 0;
+	padding: 4px 8px;
+	background: #fff;
+	overflow: auto;
+}
+#editor{
+	width: 600px;
+	height: 600px;
+	padding: 0px;
+	color: black;
+	line-height: 12px;
+	font-size: 12px;
+	font-family: "ＭＳ Ｐゴシック","ＭＳ ゴシック",sans-serif;
+}
+
+.page-header{
+	background: whiteSmoke;
+}
+.smallest {
+	padding: 4px 9px 4px;
+	margin: 5px 5px 5px 5px;
+	font-size: 11px;
+}
+
+/* Base class for all icon elements. */
+.icon {
+	height: 18px;
+	width: 16px;
+	background-image: url(./images/toolbar_icons.gif);
+	background-repeat: no-repeat;
+	vertical-align: middle;
+}
+/* Outline. */
+.goog-edit-outline { background-position: 0; }
+/* Icon. */
+.goog-edit-icon { background-position: -16px; }
+/* pop. */
+.goog-edit-pop {background-position: -32px;}
+/* background. */
+.goog-edit-bg {background-position: -48px;}
+/* effect. */
+.goog-edit-effect {background-position: -64px;}
+/* etc. */
+.goog-edit-etc {background-position: -80px;}
+/* setting. */
+.goog-edit-setting {background-position: -96px;}
+
+/* TabPane */
+.goog-tabpane-tabs {
+	list-style: none;
+	display: none;
+	margin: 0px;
+	padding: 0px;
+	height: 1ex;
+	position: relative;
+}
+
+.outline_label {
+	color: blue;
+	cursor: pointer;
+}
+
+/* Drag */
+
+.dragItem {
+	border: 1px solid #6B90DA;
+	width: 200px;
+	height: 15px;
+}
+.dragItem:hover{ background: #DDDDDD; }
+.drag { opacity: 0.6; width: 150px; }
+.source { cursor: pointer; }
+</style>
+</head>
+<body>
+	<div class="page-header">
+		<h1>シナリオエディタ<small>ツールバーからドラッグ&ドロップでコマンド挿入(Chrome推奨)</small></h1>
+		
+	</div>
+	<div class="container-fluid">
+		<div class="sidebar">
+			<h4>ツールバー</h4>
+			<div id="buttons" class="goog-tab-bar goog-tab-bar-top">
+				<div id="tab_outline" class="goog-tab goog-tab-selected"><div class="icon goog-edit-outline"></div></div>
+				<div id="tab_icon" class="goog-tab"><div class="icon goog-edit-icon"></div></div>
+				<div id="tab_pop" class="goog-tab"><div class="icon goog-edit-pop"></div></div>
+				<div id="tab_background" class="goog-tab"><div class="icon goog-edit-bg"></div></div>
+				<div id="tab_effect" class="goog-tab"><div class="icon goog-edit-effect"></div></div>
+			</div>
+			<div class="goog-tab-bar-clear"></div>
+			<div id="toolbox">
+			</div>
+			<div id="toolbox_outline" class="goog-tab-content">
+				<br/>
+				<div class="label notice">アウトライン関連コマンド</div>
+				<br/>
+			</div>
+			<div id="toolbox_icon" class="goog-tab-content">
+				<br/>
+				<div class="label notice" >アイコン関連コマンド</div>
+				<br/>
+			</div>
+			<div id="toolbox_pop" class="goog-tab-content">
+				<br/>
+				<div class="label notice" >ポップ関連コマンド</div>
+				<br/>
+			</div>
+			<div id="toolbox_background" class="goog-tab-content">
+				<br/>
+				<div class="label notice" >背景関連コマンド</div>
+				<br/>
+			</div>
+			<div id="toolbox_effect" class="goog-tab-content">
+				<br/>
+				<div class="label notice" >エフェクト関連コマンド</div>
+				<br/>
+			</div>
+		</div>
+		<div class="content">
+			<div class="row">
+				<form id="pForm" action="http://testzone9999.appspot.com/flask/splayer/" target="preview" method="POST" > 
+					<input type="hidden" name="pScenario" value="" />
+					<ul class="nav">
+					<li><h4>エディタ</h4></li>
+					<li><input id="update_outline" type="button" class="btn smallest" value="アウトライン更新" /></li>
+					<li><input id="popup_scenario" type="button" class="btn primary smallest" value="シナリオプレビュー" /></li>
+					</ul>
+				</form>
+			</div>
+			<textarea id="editor" name="" rows="35" cols="170" wrap="off"></textarea>
+		</div>
+	</div>
+<input id="scenario" type="hidden" value=""/>
+<script type="text/javascript">
+// global
+var FONT_SIZE = 12
+	,INSERT_POSITION = {"icon": 1, "pop": 1};
+
+// FIXME: 暫定、あとでパッケージ化する
+var menu = new goog.ui.PopupMenu()
+	,nowDragItem;
+menu.render();
+goog.events.listen(menu, "action", function(e){
+	// 補助アイテム選択イベント
+	var dropData = nowDragItem
+		,cmds = dropData.value.split(":")
+		,ins_pos = getInsertPos(dropData['type']);
+
+	// FIXME: 複数ポジションの挿入に対応してないのが課題
+	if(ins_pos){
+		cmds[ins_pos] = e.target.getValue();
+	}
+
+	insertCommand("[" + cmds.join(":") + "]", dropData['posY']);
+});
+
+var tabPane = new goog.ui.TabPane(document.getElementById('toolbox'));
+tabPane.addPage(new goog.ui.TabPane.TabPage(document.getElementById('toolbox_outline')));
+tabPane.addPage(new goog.ui.TabPane.TabPage(document.getElementById('toolbox_icon')));
+tabPane.addPage(new goog.ui.TabPane.TabPage(document.getElementById('toolbox_pop')));
+tabPane.addPage(new goog.ui.TabPane.TabPage(document.getElementById('toolbox_background')));
+tabPane.addPage(new goog.ui.TabPane.TabPage(document.getElementById('toolbox_effect')));
+tabPane.setSelectedIndex(0);
+
+var toolTab = new goog.ui.TabBar();
+toolTab.decorate(goog.dom.getElement('buttons'));
+toolTab.setSelectedTabIndex(0);
+
+// tab select handler
+goog.events.listen(toolTab, goog.ui.Component.EventType.SELECT,
+	function(e){
+		var tabSelected = e.target, idx;
+		switch(tabSelected.getId()){
+		case "tab_outline":    idx = 0; break;
+		case "tab_icon":       idx = 1; break;
+		case "tab_pop":        idx = 2; break;
+		case "tab_background": idx = 3; break;
+		case "tab_effect":     idx = 4; break;
+		}
+		tabPane.setSelectedIndex(idx);
+	}
+);
+
+function getInsertPos(type){
+	return INSERT_POSITION[type] ? INSERT_POSITION[type]: null;
+}
+/**
+ * @param {Array} object {type: "", label: "", value: ""}
+ * @return {Array} DragItemList
+ */
+function genDragItemList(list){
+	var items = [];
+	for(var i=0,k=list.length; i < k ;i++){
+		items.push(goog.dom.createDom('LI',{"class": 'dragItem', "iconData": list[i]},list[i]['label']));
+	}
+	return items;
+}
+/**
+ * Setting DropDrag Elements.
+ */
+function setDragCombi(target1, target2){
+	var list = new goog.fx.DragDropGroup()
+		,nodes = target1.childNodes
+		,len = nodes.length
+		,el;
+
+	// Drag Target
+	for(var i=0; i<len;i++){
+		el = nodes[i];
+		if ((el.nodeType == 1) && (el.nodeName == 'LI')) {
+			list.addItem(el, el['iconData']);
+		}
+	}
+
+	// Drop Target
+	var drop = new goog.fx.DragDrop( target2, "drop_target");
+	list.addTarget(drop);
+
+	// Set up event handlers
+	goog.events.listen(drop, 'dragover', function(e){
+		e.dropTargetElement.style.background = "#AAAADD";
+		e.dropTargetElement.style.cursor = "pointer";
+	});
+	goog.events.listen(drop, 'dragout', function(e){
+		e.dropTargetElement.style.background = "#FFFFFF";
+		e.dropTargetElement.style.cursor = "";
+	});
+	goog.events.listen(drop, 'drop', dropToEditor);
+
+	list.setSourceClass('source');
+	list.setDragClass('drag');
+	list.init();
+}
+function dropToEditor(e){
+	var dragData = e.dragSourceItem.getData()
+	,menuItem = getItemMenu(dragData['type']);
+
+	// ドロップしたのでスタイル初期化
+	e.dropTargetElement.style.background = "#FFFFFF";
+	e.dropTargetElement.style.cursor = "";
+
+	// FIXME: updateとあるのに返り値が
+	var posY = updateCurDropData(e);
+	dragData['posY'] = posY;
+
+	if(menuItem.length > 0){
+		// 補助メニューを選択させる
+		showPopupMenu(dragData, menuItem, e.clientX, e.clientY);
+	} else {
+		// 直接表示
+		insertCommand(dragData['value'], posY);
+	}
+}
+function getItemMenu(type){
+	console.log("[getItemMenu] " + type);
+	return goog.global['popmenuitem_' + type] ? goog.global['popmenuitem_' + type] : [];
+}
+/**
+ * Update Drop Object Info
+ * @param {object} DragDropEventObject
+*/
+function updateCurDropData(ddEvt){
+	var dragData = ddEvt.dragSourceItem.getData()
+		,editorPosY = goog.style.getPageOffset(goog.dom.$('editor')).y
+		,editorScrollTop = goog.dom.$('editor').scrollTop
+	// ドロップしたY座標 - TAの表示開始Y座標 + TAのYスクロール + 画面のYスクロール
+		,nowDropPosY = ddEvt.clientY - editorPosY + editorScrollTop + document.body.scrollTop;
+	console.log(nowDropPosY);
+	return nowDropPosY;
+}
+
+/**
+ * ポップアップメニュー表示
+ * @param {DragDropEvent} drop ドロップされたオブジェクト
+ * @param {Array} list 選択リスト
+ * @param {int} x 表示位置
+ * @param {int} y 表示位置
+ */
+function showPopupMenu(drag, list, x, y){
+	console.log("[showPopupMenu] x:" + x + "/y:" + y);
+	var prevItems = menu.getItems();
+	var i,k;
+
+	// 現状のドラッグアイテムを設定
+	nowDragItem = drag;
+
+	for(i=0,k=prevItems.length; i < k ;i++){
+		menu.removeItem(prevItems[i]);
+	}
+
+	for(i=0,k=list.length; i<k ; i++){
+		menu.addItem(new goog.ui.MenuItem(list[i]['label'], list[i]['value']));
+	}
+
+	if(menu.getItems().length <= 0) return;
+	menu.showWithPosition(new goog.positioning.ClientPosition(x, y));
+}
+
+function insertCommand(command, posY){
+	var editor = goog.dom.$('editor');
+
+	var row = Math.round(posY/FONT_SIZE)
+		,isEof = false
+		,content = editor.value;
+	var before, second_before, after, prefix, suffix;
+	console.log("row is " + row);
+	var re = new RegExp("\n", "gi");
+
+	// 挿入位置を確認
+	if(row>0)row -= 1;
+	if(row == 0) return 0;
+	for(var i=0 ; i < row ;i++){
+		re.exec(content);
+		if(!(re.lastIndex ? re.lastIndex : RegExp.lastIndex)){
+			isEof = true;
+			console.log("row is over");
+			break;
+		}
+	}
+
+	if(isEof){
+		// 入力行より下の行にドロップされた場合
+		before = content.substring(content.length - 1);
+		prefix = before === "\n" ? "\n" : "\n\n";
+		suffix = "\n\n";
+		content += prefix + command + suffix;
+	} else {
+		before = content.substring(re.lastIndex - 1, re.lastIndex);
+		second_before = content.substring(re.lastIndex - 2, re.lastIndex - 1);
+		prefix = before === "\n" ? (second_before === "\n" ? "": "\n") : "\n\n";
+		after = content.substring(re.lastIndex, re.lastIndex + 1);
+		suffix = after === "\n" ? "\n" : "\n\n";
+		content = content.substring(0, re.lastIndex) + 
+								prefix + 
+								command + 
+								suffix + 
+								content.substring(re.lastIndex);
+	}
+
+	editor.value = content;
+}
+
+/**
+ * アウトライン更新
+ */
+function updateOutline(){
+	var outline = goog.dom.$('outline_summary')
+		,lines = goog.dom.$('editor').value.split("\n");
+	var row, clm;
+	
+	// 初期化
+	outline.innerHTML = "";
+
+	var mvLine = function(line){
+		goog.dom.$('editor').scrollTop = FONT_SIZE*(line);
+	};
+
+	// アウトライン作成
+	outline.appendChild(goog.dom.createDom("br",{}));
+	outline.appendChild(goog.dom.createDom("div",{"class":"label notice"},"アウトライン"));
+	for (var i=0,k=lines.length; i<k; i++){
+		var tmpSLi;
+		if (String(lines[i]).indexOf("[label:") == 0){
+			// ラベル
+			row = goog.dom.createDom("div", {"class": "row"});
+			clm = goog.dom.createDom("div", {"class": "span3 outline_label"}, lines[i]);
+			clm.onclick = goog.bind(mvLine, clm, i);
+			row.appendChild(clm);
+			outline.appendChild(row);
+		} else if (String(lines[i]).indexOf("[select:") == 0 || String(lines[i]).indexOf("[goto:") == 0){
+			// 選択肢/シナリオ移動
+			row = goog.dom.createDom("div", {"class": "row"});
+			clm = goog.dom.createDom("div", {"class": "span3 offset1"}, lines[i]);
+			row.appendChild(clm);
+			outline.appendChild(row);
+		}
+	 }
+}
+
+// アウトライン
+var ols = goog.dom.$('toolbox_outline')
+	,ols_list = goog.dom.createDom('ul',{}, genDragItemList(cmd_ols))
+	,ols_btn = goog.dom.createDom('input',{"type": "button", "class": "btn smallest", "value": "アウトライン更新"})
+	,outLine = goog.dom.createDom('div', {"id": "outline_summary"});
+ols.appendChild(ols_list);
+ols.appendChild(outLine);
+setDragCombi(ols_list, goog.dom.$('editor'));
+goog.events.listen(goog.dom.$('update_outline'), goog.events.EventType.CLICK, updateOutline);
+
+// アイコン一覽
+var icon = goog.dom.$('toolbox_icon')
+	,icon_list = goog.dom.createDom('ul',{}, genDragItemList(cmd_icons));
+icon.appendChild(icon_list);
+setDragCombi(icon_list, goog.dom.$('editor'));
+
+// ポップ一覽
+var pop = goog.dom.$('toolbox_pop')
+	,pop_list = goog.dom.createDom('ul',{}, genDragItemList(cmd_pops));
+pop.appendChild(pop_list);
+setDragCombi(pop_list, goog.dom.$('editor'));
+
+// 背景一覽
+var bg = goog.dom.$('toolbox_background')
+	,bg_list = goog.dom.createDom('ul',{}, genDragItemList(cmd_bgs));
+bg.appendChild(bg_list);
+setDragCombi(bg_list, goog.dom.$('editor'));
+
+// エフェクト一覽
+var ef = goog.dom.$('toolbox_effect')
+	,ef_list = goog.dom.createDom('ul',{}, genDragItemList(cmd_efs));
+ef.appendChild(ef_list);
+setDragCombi(ef_list, goog.dom.$('editor'));
+
+// シナリオ実行ボタン
+var pvDialog = new goog.ui.Dialog(null, true);
+pvDialog.setContent(
+	'<iframe name="preview" src="http://testzone9999.appspot.com/flask/splayer/0" width="480px" height="320px"></iframe>'
+);
+pvDialog.setTitle('シナリオプレビュー');
+pvDialog.setButtonSet(null);
+pvDialog.render();
+goog.events.listen(goog.dom.$('popup_scenario'), goog.events.EventType.CLICK, function(e){
+	var scenarioForm = goog.dom.$('pForm');
+	pvDialog.setVisible(true);
+	scenarioForm["pScenario"].value = goog.dom.$('editor').value;
+	scenarioForm.submit();
+});
+
+window.onload = function(){
+	goog.dom.$('editor').value = goog.dom.$('scenario').value;
+	updateOutline();
+};
+
+</script>
+</body>
+</html>
